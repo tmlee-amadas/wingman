@@ -23,6 +23,8 @@
   table, #kpiRow { font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
   @keyframes pulseDot { 0%,100%{opacity:0.5; transform:scale(1);} 50%{opacity:1; transform:scale(1.3);} }
   @keyframes toastIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .gen-spinner { width:34px; height:34px; border-radius:50%; border:3px solid rgba(0,0,0,0.12); border-top-color:#1d1d1f; animation:spin .8s linear infinite; }
   ::-webkit-scrollbar { width:8px; height:8px; }
   ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.15); border-radius:8px; border:2px solid transparent; background-clip:content-box; }
 
@@ -308,7 +310,7 @@
               </div>
 
               <div style="display:flex; gap:8px; margin-top:14px;">
-                <button id="igRegenImg" class="btn-ghost" style="flex:1;"><span style="font-size:14px;">↻</span> 이미지 다시 만들기</button>
+                <button id="igRegenImg" class="btn-ghost" style="flex:1;"><span style="font-size:14px;">✨</span> 이미지 만들기</button>
                 <button id="igPost" class="btn-primary" style="flex:1.2; background:linear-gradient(135deg,#f58529 0%,#dd2a7b 55%,#8134af 100%);">인스타그램에 올리기</button>
               </div>
             </div>
@@ -330,12 +332,16 @@
                   </div>
                   <div id="igImage" style="aspect-ratio:4/5; position:relative; background:#f5f5f7; overflow:hidden; display:flex; align-items:center; justify-content:center;">
                     <img id="igImg" alt="AI 생성 인스타 이미지" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none;">
-                    <span id="igShot" style="position:absolute; top:10px; right:10px; display:none; background:rgba(0,0,0,0.55); color:#fff; font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:980px; letter-spacing:-0.01em;">시안 1 / 5</span>
+                    <span id="igShot" style="position:absolute; top:10px; right:10px; display:none; background:rgba(0,0,0,0.55); color:#fff; font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:980px; letter-spacing:-0.01em;">시안 1 / 4</span>
                     <div id="igImageLabel" style="display:flex; flex-direction:column; align-items:center; gap:8px; color:#a1a1a6;">
                       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
                       </svg>
-                      <div style="font-size:12px; letter-spacing:-0.01em;">이미지 영역</div>
+                      <div style="font-size:12px; letter-spacing:-0.01em;">‘이미지 만들기’를 눌러주세요</div>
+                    </div>
+                    <div id="igLoading" style="position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:11px; background:rgba(245,245,247,0.92);">
+                      <div class="gen-spinner"></div>
+                      <div style="font-size:12px; color:#6e6e73; font-weight:500; letter-spacing:-0.01em;">AI가 이미지를 만드는 중…</div>
                     </div>
                   </div>
                 </div>
@@ -408,7 +414,7 @@
               </div>
 
               <div style="display:flex; gap:8px; margin-top:auto; padding-top:14px;">
-                <button id="a4Regen" class="btn-ghost" style="flex:1;"><span style="font-size:14px;">↻</span> 디자인 다시 만들기</button>
+                <button id="a4Regen" class="btn-ghost" style="flex:1;"><span style="font-size:14px;">✨</span> 디자인 만들기</button>
                 <button id="a4Pdf" class="btn-primary" style="flex:1.2; background:linear-gradient(135deg,#ff9500 0%,#ff3b30 100%);">PDF 다운로드</button>
               </div>
             </div>
@@ -418,6 +424,15 @@
               <div id="a4PreviewLabel" style="font-size:11px; color:#86868b; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:14px;">미리보기 · A4 세로</div>
               <div id="a4PrintArea" style="max-width:380px; margin:0 auto;">
                 <div id="a4Paper" style="aspect-ratio:1/1.414; background:#fffdf7; border:1px solid rgba(0,0,0,0.12); border-radius:6px; box-shadow:0 6px 18px -8px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.06); position:relative; overflow:hidden; display:flex; flex-direction:column; padding:32px 28px;">
+                  <img id="a4Poster" alt="팝카드 디자인" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; z-index:2;">
+                  <div id="a4Loading" style="position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:11px; background:rgba(253,253,247,0.94); z-index:3;">
+                    <div class="gen-spinner"></div>
+                    <div style="font-size:12px; color:#6e6e73; font-weight:500; letter-spacing:-0.01em;">AI가 디자인을 만드는 중…</div>
+                  </div>
+                  <div id="a4Empty" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; background:#fffdf7; color:#a1a1a6; z-index:2;">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    <div style="font-size:12px; letter-spacing:-0.01em;">‘디자인 만들기’를 눌러주세요</div>
+                  </div>
                   <div id="a4Badge" style="display:inline-flex; align-self:flex-start; align-items:center; gap:6px; background:#1d1d1f; color:#fff; padding:5px 11px; border-radius:980px; font-size:10.5px; font-weight:600; letter-spacing:-0.01em;">오늘만!</div>
                   <div style="margin-top:20px;">
                     <div style="font-size:11px; color:#86868b; letter-spacing:0.04em; margin-bottom:6px;">베이커리 오븐 · 망원동</div>
@@ -648,26 +663,42 @@
     genCaption();
   });
 
-  // ====== 미리 준비된 이미지 시안 (실제 API 대신 5장 순환 · 데모 연출) ======
-  // 실제 이미지로 교체: assets/instagram/ 폴더에 같은 이름으로 덮어쓰거나, 아래 경로를 .jpg 등으로 바꾸세요.
+  // ====== 인스타 이미지: 미리 만든 4장 순환 (생성 전 빈 화면 → 로딩 연출 → 노출) ======
+  // 실제 이미지로 교체: assets/instagram/ 에 ig-1.jpg … ig-4.jpg 로 덮어쓰세요.
   var IG_IMAGES = [
-    'assets/instagram/ig-1.svg', 'assets/instagram/ig-2.svg', 'assets/instagram/ig-3.svg',
-    'assets/instagram/ig-4.svg', 'assets/instagram/ig-5.svg'
+    'assets/instagram/ig-1.jpg', 'assets/instagram/ig-2.jpg',
+    'assets/instagram/ig-3.jpg', 'assets/instagram/ig-4.jpg'
   ];
-  var igIdx = 0;
-  function showIgImage(i){
-    igIdx = ((i % IG_IMAGES.length) + IG_IMAGES.length) % IG_IMAGES.length;
-    var img = $('igImg'), badge = $('igShot');
-    img.onload = function(){ img.style.display = 'block'; badge.style.display = 'block'; };
-    img.onerror = function(){ img.style.display = 'none'; badge.style.display = 'none'; }; // 파일 없으면 자리표시로 폴백
-    img.src = IG_IMAGES[igIdx];
-    badge.textContent = '시안 ' + (igIdx + 1) + ' / ' + IG_IMAGES.length;
+  var igIdx = -1, igBusy = false;
+  function igGenerate(){
+    if(igBusy) return;
+    igBusy = true;
+    var btn = $('igRegenImg'), img = $('igImg'), badge = $('igShot'), label = $('igImageLabel'), loading = $('igLoading');
+    label.style.display = 'none'; badge.style.display = 'none';
+    loading.style.display = 'flex';
+    btn.disabled = true; btn.style.opacity = '0.6'; btn.style.cursor = 'progress';
+    var next = (igIdx + 1) % IG_IMAGES.length;
+    setTimeout(function(){                         // AI 생성 로딩 연출
+      img.onload = function(){
+        loading.style.display = 'none';
+        img.style.display = 'block'; badge.style.display = 'block';
+        igIdx = next;
+        badge.textContent = '시안 ' + (igIdx + 1) + ' / ' + IG_IMAGES.length;
+        btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = 'pointer';
+        btn.innerHTML = '<span style="font-size:14px;">↻</span> 이미지 다시 만들기';
+        igBusy = false;
+      };
+      img.onerror = function(){                     // 파일 없으면 빈 자리표시로 폴백
+        loading.style.display = 'none';
+        img.style.display = 'none'; label.style.display = 'flex';
+        btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = 'pointer';
+        igBusy = false;
+      };
+      img.src = IG_IMAGES[next];
+    }, 1500 + Math.random() * 900);
   }
-  $('igRegenImg').addEventListener('click', function(){
-    showIgImage(igIdx + 1);
-    toast('새 이미지 시안 ' + (igIdx + 1) + '번 (데모)');
-  });
-  showIgImage(0); // 미리 준비된 첫 시안을 바로 노출
+  $('igRegenImg').addEventListener('click', igGenerate);
+  // 초기 상태: 생성 전이라 아무 이미지도 없음
   $('igPost').addEventListener('click', function(){
     var when = selText('ig-postat');
     toast('검토 후 게시 모드 · "'+when+'" 게시 예약됨 (데모)');
@@ -724,27 +755,38 @@
   $('a4Sub').addEventListener('input', renderA4);
 
   $('a4Rewrite').addEventListener('click', function(){ syncA4Copy(); toast('카피를 새로 작성했습니다 (데모)'); });
-  // ====== A4 팝카드 시안 5장 순환 (데모 연출) ======
-  // 실제 이미지로 교체: assets/a4/ 폴더에 같은 이름으로 덮어쓰거나, 아래 경로를 바꾸세요.
-  var A4_IMAGES = [
-    'assets/a4/a4-1.svg', 'assets/a4/a4-2.svg', 'assets/a4/a4-3.svg',
-    'assets/a4/a4-4.svg', 'assets/a4/a4-5.svg'
-  ];
-  var a4Idx = 0;
-  function showA4Image(i){
-    a4Idx = ((i % A4_IMAGES.length) + A4_IMAGES.length) % A4_IMAGES.length;
-    var img = $('a4Img');
-    img.onload = function(){ img.style.display = 'block'; };
-    img.onerror = function(){ img.style.display = 'none'; };
-    img.src = A4_IMAGES[a4Idx];
+  // ====== A4 팝카드: 미리 만든 2장 순환 (생성 전 빈 화면 → 로딩 연출 → 노출) ======
+  // 실제 이미지로 교체: assets/a4/ 에 a4-1.jpg, a4-2.jpg 로 덮어쓰세요.
+  var A4_IMAGES = ['assets/a4/a4-1.jpg', 'assets/a4/a4-2.jpg'];
+  var a4Idx = -1, a4Busy = false;
+  function a4Generate(){
+    if(a4Busy) return;
+    a4Busy = true;
+    var btn = $('a4Regen'), img = $('a4Poster'), loading = $('a4Loading'), empty = $('a4Empty');
+    empty.style.display = 'none';
+    loading.style.display = 'flex';
+    btn.disabled = true; btn.style.opacity = '0.6'; btn.style.cursor = 'progress';
+    var next = (a4Idx + 1) % A4_IMAGES.length;
+    setTimeout(function(){                         // AI 디자인 생성 로딩 연출
+      img.onload = function(){
+        loading.style.display = 'none';
+        img.style.display = 'block';
+        a4Idx = next;
+        btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = 'pointer';
+        btn.innerHTML = '<span style="font-size:14px;">↻</span> 디자인 다시 만들기';
+        a4Busy = false;
+      };
+      img.onerror = function(){                     // 파일 없으면 빈 자리표시로 폴백
+        loading.style.display = 'none';
+        img.style.display = 'none'; empty.style.display = 'flex';
+        btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = 'pointer';
+        a4Busy = false;
+      };
+      img.src = A4_IMAGES[next];
+    }, 1600 + Math.random() * 900);
   }
-  $('a4Regen').addEventListener('click', function(){
-    showA4Image(a4Idx + 1);                                                      // 사진 시안 교체
-    var sel = $('a4-theme'); sel.selectedIndex = (sel.selectedIndex + 1) % THEME_KEYS.length; // 테마도 함께 전환
-    renderA4();
-    toast('새 디자인 시안 ' + (a4Idx + 1) + '번 · ' + selText('a4-theme'));
-  });
-  showA4Image(0); // 미리 준비된 첫 시안을 바로 노출
+  $('a4Regen').addEventListener('click', a4Generate);
+  // 초기 상태: 생성 전이라 아무 디자인도 없음
   $('a4Pdf').addEventListener('click', function(){
     document.body.classList.add('printing-a4');
     toast('인쇄 대화상자에서 "PDF로 저장"을 선택하세요');
