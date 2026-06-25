@@ -1,4 +1,6 @@
-# SyncDemand 대시보드 (창업캠프MCP)
+# Wingman 대시보드 (창업캠프MCP)
+
+> 제품명 **Wingman** · 윙 마크 로고: `assets/brand/wingman-mark.svg` (사이드바·파비콘에 반영)
 
 베이커리 오븐(망원동)용 **수요예측 연동 마케팅 자동화 플랫폼** 대시보드 MVP.
 Claude Design 프로토타입 `창업캠프MCP.dc.html`를 실행 가능한 단일 HTML 앱으로 구현했다.

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 104" fill="none">
+  <defs>
+    <linearGradient id="wm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f4f6"/>
+      <stop offset="0.15" stop-color="#dcdce0"/>
+      <stop offset="0.4" stop-color="#b6b6ba"/>
+      <stop offset="0.6" stop-color="#74747a"/>
+      <stop offset="0.82" stop-color="#303034"/>
+      <stop offset="1" stop-color="#161618"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#wm)">
+    <!-- right body / trailing column with rounded shoulder -->
+    <rect x="82" y="14" width="24" height="78" rx="12"/>
+    <!-- top feather (longest) -->
+    <rect x="16" y="14" width="80" height="16" rx="8"/>
+    <!-- mid feather (angled left tip) -->
+    <path d="M48 40 L90 40 Q96 40 96 46 L96 49 Q96 55 90 55 L40 55 Z"/>
+    <!-- low feather (angled left tip) -->
+    <path d="M48 62 L90 62 Q96 62 96 68 L96 71 Q96 77 90 77 L40 77 Z"/>
+  </g>
+</svg>
