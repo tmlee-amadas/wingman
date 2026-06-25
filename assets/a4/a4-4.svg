@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="-apple-system,'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ece5d7"/><stop offset="1" stop-color="#c7b288"/></linearGradient>
+    <radialGradient id="vig" cx="0.5" cy="0.42" r="0.8"><stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#5a3a18" stop-opacity="0.12"/></radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <rect width="800" height="500" fill="url(#vig)"/>
+  <text x="400" y="205" text-anchor="middle" font-size="92" font-weight="800" fill="#8a5a28" fill-opacity="0.14">시안 4</text>
+  <g transform="translate(400 270) rotate(-14)">
+    <ellipse cx="0" cy="0" rx="220" ry="64" fill="#e8b676" stroke="#b9803f" stroke-width="4"/>
+    <g stroke="#9c6328" stroke-width="6" stroke-linecap="round" opacity="0.8">
+      <line x1="-110" y1="-27" x2="-81" y2="-1"/>
+      <line x1="-29" y1="-31" x2="0" y2="-5"/>
+      <line x1="51" y1="-29" x2="81" y2="-4"/>
+    </g>
+  </g>
+  <text x="400" y="430" text-anchor="middle" font-size="30" font-weight="700" fill="#7a4f22">AI 팝카드 시안 #4 · 바게트</text>
+</svg>

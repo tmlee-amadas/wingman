@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SyncDemand · 베이커리 오븐 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#f5f5f7; scroll-behavior:smooth; }
+  body {
+    font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Apple SD Gothic Neo", "Pretendard", "Inter", sans-serif;
+    -webkit-font-smoothing:antialiased;
+    color:#1d1d1f;
+    letter-spacing:-0.012em;
+  }
+  * { box-sizing:border-box; }
+  @keyframes pulseDot { 0%,100%{opacity:0.5; transform:scale(1);} 50%{opacity:1; transform:scale(1.3);} }
+  @keyframes toastIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.15); border-radius:8px; border:2px solid transparent; background-clip:content-box; }
+
+  select.sd-select {
+    appearance:none; -webkit-appearance:none;
+    font-family:inherit; font-size:13px; font-weight:500; color:#1d1d1f;
+    background:#fff; border:1px solid rgba(0,0,0,0.12); border-radius:10px;
+    padding:10px 36px 10px 14px; cursor:pointer; width:100%; letter-spacing:-0.01em;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%2386868b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 14px center;
+  }
+  select.sd-select:focus { outline:none; border-color:#0071e3; box-shadow:0 0 0 3px rgba(0,113,227,0.15); }
+  textarea:focus, input:focus { outline:none; border-color:#0071e3 !important; box-shadow:0 0 0 3px rgba(0,113,227,0.12); }
+
+  /* sidebar nav */
+  .nav-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; font-size:13px; cursor:pointer; user-select:none; text-decoration:none; color:#1d1d1f; transition:background .15s; }
+  .nav-item:hover { background:rgba(0,0,0,0.035); }
+  .nav-item.active-sales     { background:#eef4ff; color:#0071e3; font-weight:500; }
+  .nav-item.active-instagram { background:#fdeaf3; color:#dd2a7b; font-weight:500; }
+  .nav-item.active-a4        { background:#fff3e0; color:#9a5b00; font-weight:500; }
+
+  .view { display:none; flex-direction:column; gap:14px; }
+  .view.active { display:flex; }
+
+  .seg-btn { background:transparent; border:none; padding:5px 12px; font-size:12px; color:#6e6e73; cursor:pointer; border-radius:6px; }
+  .seg-btn.active { background:#fff; color:#1d1d1f; font-weight:500; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+
+  .btn-ghost { background:#e8e8ed; color:#1d1d1f; border:1px solid rgba(0,0,0,0.08); border-radius:980px; padding:13px 20px; font-size:13.5px; font-weight:500; cursor:pointer; font-family:inherit; letter-spacing:-0.01em; display:inline-flex; align-items:center; justify-content:center; gap:7px; transition:filter .15s; }
+  .btn-ghost:hover { filter:brightness(0.97); }
+  .btn-primary { color:#fff; border:none; border-radius:980px; padding:13px 20px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit; letter-spacing:-0.01em; transition:filter .15s; }
+  .btn-primary:hover { filter:brightness(1.05); }
+  .link-action { font-size:11px; color:#0071e3; cursor:pointer; font-weight:500; user-select:none; }
+  .link-action:hover { text-decoration:underline; }
+
+  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:rgba(29,29,31,0.94); color:#fff; padding:11px 18px; border-radius:12px; font-size:13px; font-weight:500; letter-spacing:-0.01em; box-shadow:0 8px 28px -6px rgba(0,0,0,0.35); z-index:100; display:none; animation:toastIn .22s ease; }
+
+  @media (max-width:1180px){ #kpiRow { grid-template-columns:repeat(3,1fr) !important; } }
+  @media (max-width:900px){ .creator-grid { grid-template-columns:1fr !important; } .creator-grid > div { border-right:none !important; } }
+  @media (max-width:720px){ #kpiRow { grid-template-columns:repeat(2,1fr) !important; } }
+
+  /* print only the A4 card */
+  @media print {
+    body.printing-a4 { background:#fff; }
+    body.printing-a4 * { visibility:hidden; }
+    body.printing-a4 #a4PrintArea, body.printing-a4 #a4PrintArea * { visibility:visible; }
+    body.printing-a4 #a4PrintArea { position:absolute; left:0; top:0; width:100%; margin:0; }
+    body.printing-a4 #a4PrintArea > div { box-shadow:none !important; border:none !important; max-width:none !important; }
+    @page { size:A4; margin:14mm; }
+  }
+</style>
+</head>
+<body>
+
+<div style="display:grid; grid-template-columns:232px 1fr; min-height:100vh; background:#f5f5f7;">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="background:#fbfbfd; border-right:1px solid rgba(0,0,0,0.06); padding:14px 12px; display:flex; flex-direction:column; gap:2px; position:sticky; top:0; height:100vh; overflow-y:auto;">
+
+    <div style="display:flex; align-items:center; gap:10px; padding:6px 8px 10px;">
+      <div style="width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,#1d1d1f 0%,#3a3a3c 100%); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; letter-spacing:-0.02em;">S</div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:13.5px; font-weight:600; letter-spacing:-0.015em;">SyncDemand</div>
+        <div style="font-size:10.5px; color:#86868b;">베이커리 오븐 · 망원동</div>
+      </div>
+    </div>
+
+    <button id="searchBar" style="display:flex; align-items:center; gap:8px; padding:7px 10px; background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:8px; margin:6px 0 12px; cursor:pointer; width:100%; font-family:inherit;">
+      <span style="font-size:13px; color:#86868b;">⌕</span>
+      <span style="font-size:12px; color:#86868b; flex:1; text-align:left;">검색</span>
+      <span style="font-size:10px; color:#86868b; background:#f5f5f7; padding:1px 5px; border-radius:4px; font-weight:500;">⌘K</span>
+    </button>
+
+    <a href="#" data-nav="sales" class="nav-item active-sales">
+      <span style="width:5px; height:5px; border-radius:50%; background:#0071e3;"></span> 매출 현황
+    </a>
+    <a href="#" data-nav="instagram" class="nav-item">
+      <span style="width:5px; height:5px; border-radius:50%; background:#dd2a7b;"></span> 인스타 게시물 만들기
+    </a>
+    <a href="#" data-nav="a4" class="nav-item">
+      <span style="width:5px; height:5px; border-radius:50%; background:#ff9500;"></span> A4 팝카드 만들기
+    </a>
+
+    <div style="margin-top:auto; padding-top:14px;">
+      <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:10px; padding:10px;">
+        <div style="font-size:10.5px; color:#86868b; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:6px;">연동 상태</div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:11.5px; margin-bottom:4px;"><span style="width:6px; height:6px; border-radius:50%; background:#34c759;"></span> 페이히어 POS <span style="margin-left:auto; color:#86868b; font-size:10.5px;">실시간</span></div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:11.5px;"><span style="width:6px; height:6px; border-radius:50%; background:#34c759;"></span> 인스타그램 <span style="margin-left:auto; color:#86868b; font-size:10.5px;">@oven</span></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; padding:10px 8px 0;">
+        <div style="width:28px; height:28px; border-radius:50%; background:#1d1d1f; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:11.5px;">김</div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:12px; font-weight:600;">김도현 사장</div>
+          <div style="font-size:10.5px; color:#86868b;">베이커리 오븐</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main style="min-width:0;">
+
+    <!-- TOP BAR -->
+    <header style="position:sticky; top:0; z-index:10; backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); background:rgba(245,245,247,0.85); border-bottom:1px solid rgba(0,0,0,0.05); padding:10px 28px; display:flex; align-items:center; justify-content:flex-end;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#3a3a3c;">
+          망원동 <b style="color:#1d1d1f;">맑음 26°</b>
+        </span>
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#34c759;">
+          <span style="width:6px; height:6px; border-radius:50%; background:#34c759; animation:pulseDot 2.4s infinite;"></span>
+          @oven_mangwon
+        </span>
+      </div>
+    </header>
+
+    <div style="padding:12px 28px 60px;">
+
+      <!-- ====================== VIEW: 매출 현황 ====================== -->
+      <section class="view active" data-view="sales">
+
+        <!-- KPI ROW -->
+        <div id="kpiRow" style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px;">
+          <div style="background:#fff; border-radius:14px; padding:16px;">
+            <div id="kpiSalesLabel" style="font-size:11px; color:#6e6e73; margin-bottom:10px;">오늘 매출</div>
+            <div style="font-size:21px; font-weight:700; letter-spacing:-0.025em; line-height:1;"><span id="kpiSalesValue">684,500</span><span style="font-size:11px; color:#86868b; font-weight:500; margin-left:2px;">원</span></div>
+            <div id="kpiSalesDelta" style="font-size:10.5px; margin-top:10px;"></div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px;">
+            <div style="font-size:11px; color:#6e6e73; margin-bottom:10px;">방문 손님</div>
+            <div style="font-size:21px; font-weight:700; letter-spacing:-0.025em; line-height:1;"><span id="kpiVisitors">87</span><span style="font-size:11px; color:#86868b; font-weight:500; margin-left:3px;">명</span></div>
+            <div id="kpiVisitorsSub" style="font-size:10.5px; margin-top:10px; color:#86868b;">단골 38 · 신규 49</div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px;">
+            <div style="font-size:11px; color:#6e6e73; margin-bottom:10px;">예상 폐기</div>
+            <div style="font-size:21px; font-weight:700; letter-spacing:-0.025em; line-height:1; color:#ff9500;"><span id="kpiWaste">42,000</span><span style="font-size:11px; color:#86868b; font-weight:500; margin-left:2px;">원</span></div>
+            <div id="kpiWasteSub" style="font-size:10.5px; margin-top:10px; color:#86868b;">바게트 8 · 통밀빵 6</div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px;">
+            <div style="font-size:11px; color:#6e6e73; margin-bottom:10px;">남은 한산 슬롯</div>
+            <div style="font-size:21px; font-weight:700; letter-spacing:-0.025em; line-height:1;"><span id="kpiSlots">2</span><span style="font-size:11px; color:#86868b; font-weight:500; margin-left:3px;">개</span></div>
+            <div id="kpiSlotsSub" style="font-size:10.5px; margin-top:10px; color:#86868b;">15–16시 · 19–20시</div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px;">
+            <div style="font-size:11px; color:#6e6e73; margin-bottom:10px;">망원동 날씨</div>
+            <div style="font-size:21px; font-weight:700; letter-spacing:-0.025em; line-height:1;">맑음 26<span style="font-size:13px; color:#86868b; font-weight:500;">°</span></div>
+            <div style="font-size:10.5px; margin-top:10px; color:#86868b;">오후 28° · 저녁 22°</div>
+          </div>
+          <div style="background:#fff; border-radius:14px; padding:16px;">
+            <div style="font-size:11px; color:#6e6e73; margin-bottom:10px;">인스타그램 연결</div>
+            <div style="display:flex; align-items:center; gap:7px;">
+              <span style="width:8px; height:8px; border-radius:50%; background:#34c759; animation:pulseDot 2.4s infinite;"></span>
+              <span style="font-size:17px; font-weight:700; letter-spacing:-0.02em; line-height:1; color:#0a7a3c;">정상</span>
+            </div>
+            <div style="font-size:10.5px; margin-top:10px; color:#86868b;">@oven_mangwon</div>
+          </div>
+        </div>
+
+        <!-- SKU TABLE -->
+        <div style="background:#fff; border-radius:14px; overflow:hidden;">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 22px; border-bottom:1px solid rgba(0,0,0,0.05);">
+            <div>
+              <div style="font-size:15px; font-weight:600; letter-spacing:-0.015em;">SKU별 판매 현황</div>
+              <div style="font-size:11.5px; color:#86868b; margin-top:2px;">페이히어 POS 실시간 · 방금 전 업데이트</div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <div id="periodSeg" style="display:flex; gap:4px; background:#f5f5f7; padding:2px; border-radius:8px;">
+                <button class="seg-btn active" data-period="today">오늘</button>
+                <button class="seg-btn" data-period="week">주간</button>
+                <button class="seg-btn" data-period="month">월간</button>
+              </div>
+              <button id="filterBtn" style="background:#fff; border:1px solid rgba(0,0,0,0.1); border-radius:8px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:inherit;">필터</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:920px;">
+              <thead>
+                <tr style="background:#fafafa; color:#6e6e73;">
+                  <th style="text-align:left; padding:10px 22px; font-weight:500; font-size:11.5px;">품목</th>
+                  <th style="text-align:left; padding:10px 8px; font-weight:500; font-size:11.5px;">카테고리</th>
+                  <th style="text-align:right; padding:10px 8px; font-weight:500; font-size:11.5px;">단가</th>
+                  <th style="text-align:right; padding:10px 8px; font-weight:500; font-size:11.5px;">생산</th>
+                  <th style="text-align:right; padding:10px 8px; font-weight:500; font-size:11.5px;">판매</th>
+                  <th style="text-align:right; padding:10px 8px; font-weight:500; font-size:11.5px;">남은 재고</th>
+                  <th style="text-align:left; padding:10px 8px; font-weight:500; font-size:11.5px; width:200px;">시간대별 추이</th>
+                  <th style="text-align:right; padding:10px 8px; font-weight:500; font-size:11.5px;">매출</th>
+                  <th style="text-align:right; padding:10px 22px; font-weight:500; font-size:11.5px;">상태</th>
+                </tr>
+              </thead>
+              <tbody id="skuBody"></tbody>
+              <tfoot id="skuFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== VIEW: 인스타 게시물 ====================== -->
+      <section class="view" data-view="instagram">
+        <div style="background:#fff; border-radius:14px; overflow:hidden;">
+
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 22px; border-bottom:1px solid rgba(0,0,0,0.05);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg,#f58529 0%,#dd2a7b 50%,#8134af 100%); display:inline-block;"></span>
+              <div>
+                <div style="font-size:15px; font-weight:600; letter-spacing:-0.015em;">인스타그램 게시물 만들기</div>
+                <div style="font-size:11.5px; color:#86868b; margin-top:2px;">선택만 하면 AI가 이미지와 캡션을 만들어드려요</div>
+              </div>
+            </div>
+            <span style="font-size:11.5px; color:#86868b;">@oven_mangwon · 팔로워 1,284</span>
+          </div>
+
+          <div class="creator-grid" style="display:grid; grid-template-columns:minmax(0,0.8fr) minmax(0,1.2fr); gap:0;">
+
+            <!-- 왼쪽: 설정 -->
+            <div style="padding:22px; border-right:1px solid rgba(0,0,0,0.05);">
+              <div style="font-size:11px; color:#86868b; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:14px;">콘텐츠 설정</div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div><label class="fld">콘텐츠 유형</label>
+                  <select id="ig-type" class="sd-select">
+                    <option selected>마감 할인 안내 (추천)</option><option>신메뉴 예고</option><option>매장 분위기</option><option>단골 감사</option><option>시즌 이벤트</option><option>직접 입력…</option>
+                  </select></div>
+                <div><label class="fld">주제 빵</label>
+                  <select id="ig-bread" class="sd-select">
+                    <option selected>바게트 (15개 남음)</option><option>소금빵 (12개)</option><option>크루아상 (7개)</option><option>통밀빵 (12개·과잉)</option><option>식빵 (2개)</option><option>단팥빵 (8개)</option><option>베이글 (4개·신메뉴)</option><option>여러 개 묶기…</option>
+                  </select></div>
+                <div><label class="fld">할인율</label>
+                  <select id="ig-discount" class="sd-select">
+                    <option>할인 없음</option><option>10%</option><option>15%</option><option selected>20% (AI 추천)</option><option>25%</option><option>30%</option><option>1+1</option><option>직접 입력…</option>
+                  </select></div>
+                <div><label class="fld">진행 시간</label>
+                  <select id="ig-time" class="sd-select">
+                    <option>1시간만</option><option>2시간</option><option selected>오후 3–6시</option><option>마감까지</option><option>하루 종일</option><option>이번 주말</option>
+                  </select></div>
+                <div><label class="fld">이미지 스타일</label>
+                  <select id="ig-style" class="sd-select">
+                    <option selected>빵 클로즈업</option><option>매장 무드</option><option>메뉴판 스타일</option><option>일러스트</option><option>직접 업로드…</option>
+                  </select></div>
+                <div><label class="fld">색감</label>
+                  <select id="ig-imgcolor" class="sd-select">
+                    <option selected>따뜻한 베이지</option><option>차분한 모노</option><option>화사한 봄</option><option>딥 다크</option>
+                  </select></div>
+                <div><label class="fld">말투</label>
+                  <select id="ig-tone" class="sd-select">
+                    <option>친근하게</option><option selected>정중하게 (추천)</option><option>유머있게</option><option>감성적으로</option><option>간결하게</option>
+                  </select></div>
+                <div><label class="fld">글 길이</label>
+                  <select id="ig-length" class="sd-select">
+                    <option>짧게 (한 줄)</option><option selected>보통 (3–4줄)</option><option>길게 (스토리)</option>
+                  </select></div>
+                <div><label class="fld">해시태그</label>
+                  <select id="ig-hashtag" class="sd-select">
+                    <option selected>망원동 동네</option><option>빵지순례</option><option>베이커리 일반</option><option>할인 강조</option><option>없이</option>
+                  </select></div>
+                <div><label class="fld">게시 시각</label>
+                  <select id="ig-postat" class="sd-select">
+                    <option selected>지금 바로</option><option>14:50 (AI 최적)</option><option>오후 3시 정각</option><option>저녁 7시</option><option>내일 오전 8시</option><option>직접 지정…</option>
+                  </select></div>
+              </div>
+
+              <div style="margin-top:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label class="fld" style="margin:0;">게시물 캡션</label>
+                  <span id="igRewrite" class="link-action">↻ 다시 쓰기</span>
+                </div>
+                <textarea id="igCaption" style="width:100%; min-height:200px; resize:vertical; background:#fff; border:1px solid rgba(0,0,0,0.12); border-radius:10px; padding:14px 16px; font-family:inherit; font-size:13.5px; line-height:1.65; color:#1d1d1f; letter-spacing:-0.01em;"></textarea>
+                <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:10.5px; color:#86868b;">
+                  <span>AI 생성 · 직접 수정 가능</span>
+                  <span><span id="igCount">0</span> / 2,200자</span>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:8px; margin-top:14px;">
+                <button id="igRegenImg" class="btn-ghost" style="flex:1;"><span style="font-size:14px;">↻</span> 이미지 다시 만들기</button>
+                <button id="igPost" class="btn-primary" style="flex:1.2; background:linear-gradient(135deg,#f58529 0%,#dd2a7b 55%,#8134af 100%);">인스타그램에 올리기</button>
+              </div>
+            </div>
+
+            <!-- 오른쪽: 미리보기 -->
+            <div style="padding:22px; background:#fafafa;">
+              <div style="font-size:11px; color:#86868b; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:14px;">미리보기</div>
+              <div style="max-width:520px; margin:0 auto;">
+                <div style="background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid rgba(0,0,0,0.05);">
+                    <div style="width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af); padding:2px; display:flex; align-items:center; justify-content:center;">
+                      <div style="width:100%; height:100%; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; color:#1d1d1f;">O</div>
+                    </div>
+                    <div style="flex:1;">
+                      <div style="font-size:12.5px; font-weight:600;">oven_mangwon</div>
+                      <div style="font-size:10.5px; color:#86868b;">망원동 · 후원</div>
+                    </div>
+                    <span style="font-size:16px; color:#86868b;">⋯</span>
+                  </div>
+                  <div id="igImage" style="aspect-ratio:4/5; position:relative; background:#f5f5f7; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                    <img id="igImg" alt="AI 생성 인스타 이미지" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none;">
+                    <span id="igShot" style="position:absolute; top:10px; right:10px; display:none; background:rgba(0,0,0,0.55); color:#fff; font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:980px; letter-spacing:-0.01em;">시안 1 / 5</span>
+                    <div id="igImageLabel" style="display:flex; flex-direction:column; align-items:center; gap:8px; color:#a1a1a6;">
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                      <div style="font-size:12px; letter-spacing:-0.01em;">이미지 영역</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================== VIEW: A4 팝카드 ====================== -->
+      <section class="view" data-view="a4">
+        <div style="background:#fff; border-radius:14px; overflow:hidden;">
+
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid rgba(0,0,0,0.05);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:20px; height:20px; border-radius:6px; background:linear-gradient(135deg,#ff9500 0%,#ff3b30 100%); display:inline-block;"></span>
+              <div style="font-size:14px; font-weight:600; letter-spacing:-0.015em;">A4 팝카드 만들기</div>
+            </div>
+            <span style="font-size:11.5px; color:#86868b;">매장 출입구 · 카운터에 출력해 붙이세요</span>
+          </div>
+
+          <div class="creator-grid" style="display:grid; grid-template-columns:minmax(0,0.8fr) minmax(0,1.2fr); gap:0;">
+
+            <!-- 왼쪽: 설정 -->
+            <div style="padding:14px 16px; border-right:1px solid rgba(0,0,0,0.05); display:flex; flex-direction:column;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div><label class="fld">팝카드 유형</label>
+                  <select id="a4-type" class="sd-select">
+                    <option selected>오늘의 할인 안내 (추천)</option><option>신메뉴 소개</option><option>운영시간 변경</option><option>휴무 안내</option><option>단골 모집</option><option>직접 입력…</option>
+                  </select></div>
+                <div><label class="fld">주제 빵</label>
+                  <select id="a4-bread" class="sd-select">
+                    <option selected>바게트 (15개 남음)</option><option>소금빵 (12개)</option><option>크루아상 (7개)</option><option>통밀빵 (12개·과잉)</option><option>단팥빵 (8개)</option><option>여러 개 묶기…</option>
+                  </select></div>
+                <div><label class="fld">할인율</label>
+                  <select id="a4-discount" class="sd-select">
+                    <option>할인 없음</option><option>10%</option><option>15%</option><option selected>20% (AI 추천)</option><option>25%</option><option>30%</option><option>1+1</option>
+                  </select></div>
+                <div><label class="fld">진행 시간</label>
+                  <select id="a4-time" class="sd-select">
+                    <option selected>오후 3–6시</option><option>마감까지</option><option>하루 종일</option><option>이번 주말</option><option>이번 주 내내</option>
+                  </select></div>
+                <div><label class="fld">레이아웃</label>
+                  <select id="a4-layout" class="sd-select">
+                    <option selected>큰 가격 + 사진</option><option>타이포 중심</option><option>일러스트 강조</option><option>심플 텍스트</option>
+                  </select></div>
+                <div><label class="fld">색상 테마</label>
+                  <select id="a4-theme" class="sd-select">
+                    <option selected>따뜻한 베이지</option><option>차분한 모노</option><option>비비드 레드</option><option>그린 내추럴</option><option>흑백 프린트 친화</option>
+                  </select></div>
+                <div><label class="fld">용지 방향</label>
+                  <select id="a4-orient" class="sd-select">
+                    <option selected>세로 (A4 Portrait)</option><option>가로 (A4 Landscape)</option><option>A5 절반</option>
+                  </select></div>
+                <div><label class="fld">강조 문구</label>
+                  <select id="a4-emph" class="sd-select">
+                    <option selected>오늘만!</option><option>한정 수량</option><option>마감 전 특가</option><option>단골 감사</option><option>없이</option>
+                  </select></div>
+              </div>
+
+              <div style="margin-top:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label class="fld" style="margin:0;">큰 헤드라인</label>
+                  <span id="a4Rewrite" class="link-action">↻ 다시 쓰기</span>
+                </div>
+                <input id="a4Headline" style="width:100%; background:#fff; border:1px solid rgba(0,0,0,0.12); border-radius:10px; padding:11px 14px; font-family:inherit; font-size:14px; font-weight:600; color:#1d1d1f; letter-spacing:-0.015em;" value="오늘만 바게트 20% 할인"/>
+                <label class="fld" style="display:block; margin:10px 0 6px;">서브 카피</label>
+                <textarea id="a4Sub" style="width:100%; min-height:64px; resize:vertical; background:#fff; border:1px solid rgba(0,0,0,0.12); border-radius:10px; padding:11px 14px; font-family:inherit; font-size:13px; line-height:1.6; color:#1d1d1f; letter-spacing:-0.01em;">오늘 새벽 갓 구운 바게트
+오후 3시–6시 한정 · 마감 전에 모셔가세요</textarea>
+              </div>
+
+              <div style="display:flex; gap:8px; margin-top:auto; padding-top:14px;">
+                <button id="a4Regen" class="btn-ghost" style="flex:1;"><span style="font-size:14px;">↻</span> 디자인 다시 만들기</button>
+                <button id="a4Pdf" class="btn-primary" style="flex:1.2; background:linear-gradient(135deg,#ff9500 0%,#ff3b30 100%);">PDF 다운로드</button>
+              </div>
+            </div>
+
+            <!-- 오른쪽: A4 미리보기 -->
+            <div style="padding:14px 16px; background:#fafafa;">
+              <div id="a4PreviewLabel" style="font-size:11px; color:#86868b; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:14px;">미리보기 · A4 세로</div>
+              <div id="a4PrintArea" style="max-width:380px; margin:0 auto;">
+                <div id="a4Paper" style="aspect-ratio:1/1.414; background:#fffdf7; border:1px solid rgba(0,0,0,0.12); border-radius:6px; box-shadow:0 6px 18px -8px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.06); position:relative; overflow:hidden; display:flex; flex-direction:column; padding:32px 28px;">
+                  <div id="a4Badge" style="display:inline-flex; align-self:flex-start; align-items:center; gap:6px; background:#1d1d1f; color:#fff; padding:5px 11px; border-radius:980px; font-size:10.5px; font-weight:600; letter-spacing:-0.01em;">오늘만!</div>
+                  <div style="margin-top:20px;">
+                    <div style="font-size:11px; color:#86868b; letter-spacing:0.04em; margin-bottom:6px;">베이커리 오븐 · 망원동</div>
+                    <div id="a4HeadOut" style="font-size:30px; font-weight:800; line-height:1.12; letter-spacing:-0.03em; color:#1d1d1f;"></div>
+                  </div>
+                  <div id="a4ImgWrap" style="margin:18px 0; aspect-ratio:1.6/1; border-radius:8px; background:#f5f5f7; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                    <img id="a4Img" alt="팝카드 이미지" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none;">
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:6px; color:#a1a1a6;">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                      <div style="font-size:11px; letter-spacing:-0.01em;">이미지 영역</div>
+                    </div>
+                  </div>
+                  <div id="a4SubOut" style="font-size:12px; color:#3a3a3c; line-height:1.55; white-space:pre-line;"></div>
+                  <div style="margin-top:auto; display:flex; align-items:center; justify-content:space-between; padding-top:14px; border-top:1px solid rgba(0,0,0,0.06); font-size:10px; color:#86868b;">
+                    <span>서울 마포구 망원동 · @oven_mangwon</span>
+                    <span id="a4Date">2026.06.25</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var won = function(n){ return n.toLocaleString('en-US'); };
+  var esc = function(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  // 한국어 조사 받침 처리
+  function hasJong(w){ if(!w) return false; var c=w.charCodeAt(w.length-1); if(c<0xAC00||c>0xD7A3) return false; return (c-0xAC00)%28!==0; }
+  function iga(w){ return w + (hasJong(w) ? '이' : '가'); }            // 이/가
+  function euro(w){ if(!w) return w; var c=w.charCodeAt(w.length-1); if(c<0xAC00||c>0xD7A3) return w+'로'; var j=(c-0xAC00)%28; return w + ((j===0||j===8)?'로':'으로'); } // (으)로, ㄹ받침 예외
+
+  // field label style helper
+  document.querySelectorAll('label.fld').forEach(function(l){
+    l.style.cssText = 'display:block; font-size:11px; color:#86868b; font-weight:500; margin-bottom:6px; padding-left:2px;';
+  });
+
+  var toastTimer;
+  function toast(msg){
+    var t = $('toast'); t.textContent = msg; t.style.display = 'block';
+    t.style.animation = 'none'; void t.offsetWidth; t.style.animation = 'toastIn .22s ease';
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.style.display='none'; }, 2600);
+  }
+
+  /* ---------------- VIEW SWITCHING ---------------- */
+  var navs = document.querySelectorAll('[data-nav]');
+  var views = document.querySelectorAll('.view');
+  function setView(key){
+    navs.forEach(function(n){
+      n.classList.remove('active-sales','active-instagram','active-a4');
+      if(n.getAttribute('data-nav') === key) n.classList.add('active-' + key);
+    });
+    views.forEach(function(v){ v.classList.toggle('active', v.getAttribute('data-view') === key); });
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  navs.forEach(function(n){
+    n.addEventListener('click', function(e){ e.preventDefault(); setView(n.getAttribute('data-nav')); });
+  });
+
+  /* ---------------- 매출 현황: 데이터 + 렌더 ---------------- */
+  var STATUS = {
+    ok:    { bg:'#e4f5ea', color:'#0a7a3c' },
+    danger:{ bg:'#ffe5e3', color:'#c03128' },
+    warn:  { bg:'#fff3e0', color:'#9a5b00' }
+  };
+  // base = "오늘" 데이터 (원본 디자인 값과 동일)
+  var SKU = [
+    { name:'소금빵',  cat:'데일리 베스트', price:3800, prod:64, sold:52, stock:12, spark:{c:'#0071e3', p:'0,18 22,16 45,12 68,6 90,4 112,8 135,11 158,9 180,13'}, st:'ok', stTxt:'정상' },
+    { name:'크루아상', cat:'아침 인기',    price:4200, prod:48, sold:41, stock:7,  spark:{c:'#0071e3', p:'0,14 22,4 45,2 68,5 90,10 112,14 135,16 158,17 180,18'}, st:'ok', stTxt:'정상' },
+    { name:'바게트',  cat:'데일리',       price:5500, prod:24, sold:9,  stock:15, spark:{c:'#ff3b30', p:'0,8 22,10 45,11 68,14 90,16 112,17 135,18 158,18 180,19', avg:'0,5 22,6 45,5 68,6 90,7 112,8 135,9 158,10 180,11'}, st:'danger', stTxt:'판매 -42%', hl:true, soldColor:'#ff3b30', stockColor:'#c03128' },
+    { name:'식빵',    cat:'예약 다수',    price:6500, prod:12, sold:10, stock:2,  spark:{c:'#0071e3', p:'0,16 22,14 45,12 68,10 90,8 112,7 135,6 158,5 180,4'}, st:'ok', stTxt:'정상' },
+    { name:'통밀빵',  cat:'건강식',       price:4800, prod:20, sold:8,  stock:12, spark:{c:'#ff9500', p:'0,12 22,12 45,13 68,14 90,15 112,16 135,17 158,17 180,18'}, st:'warn', stTxt:'재고 과잉', hl:true, stockColor:'#9a5b00' },
+    { name:'단팥빵',  cat:'단골 메뉴',    price:3200, prod:40, sold:32, stock:8,  spark:{c:'#0071e3', p:'0,15 22,13 45,11 68,9 90,8 112,9 135,11 158,12 180,14'}, st:'ok', stTxt:'정상' },
+    { name:'베이글',  cat:'신메뉴',       price:4500, prod:18, sold:14, stock:4,  spark:{c:'#34c759', p:'0,18 22,16 45,14 68,12 90,10 112,9 135,8 158,7 180,7'}, st:'ok', stTxt:'반응 좋음' }
+  ];
+  var KPI = {
+    today: { label:'오늘 매출', sales:'684,500', delta:{dir:'down', pct:'12%', txt:'지난 목요일 대비'}, visitors:'87',    visitorsSub:'단골 38 · 신규 49',      waste:'42,000',    wasteSub:'바게트 8 · 통밀빵 6', slots:'2',  slotsSub:'15–16시 · 19–20시' },
+    week:  { label:'주간 매출', delta:{dir:'up',   pct:'8%',  txt:'지난주 대비'},     visitors:'612',   visitorsSub:'단골 274 · 신규 338',     waste:'248,000',   wasteSub:'바게트·통밀 누계',   slots:'9',  slotsSub:'주중 오후 한산' },
+    month: { label:'월간 매출', delta:{dir:'up',   pct:'15%', txt:'지난달 대비'},     visitors:'2,640', visitorsSub:'단골 1,180 · 신규 1,460', waste:'1,060,000', wasteSub:'과잉 품목 누계',     slots:'40', slotsSub:'주중 오후·저녁' }
+  };
+  var FACTOR = { today:1, week:6, month:26 };
+
+  function rowsFor(period){
+    var f = FACTOR[period];
+    return SKU.map(function(r){
+      var sold = Math.round(r.sold * f), prod = Math.round(r.prod * f);
+      return {
+        name:r.name, cat:r.cat, price:r.price, prod:prod, sold:sold,
+        stock:r.stock, // 남은 재고는 현재 시점 스냅샷 → 기간과 무관
+        revenue: r.price * sold, spark:r.spark, st:r.st, stTxt:r.stTxt,
+        hl:r.hl, soldColor:r.soldColor, stockColor:r.stockColor
+      };
+    });
+  }
+
+  function sparkSvg(s){
+    var avg = s.avg ? '<polyline points="'+s.avg+'" fill="none" stroke="#c7c7cc" stroke-width="1.2" stroke-dasharray="3 2"/>' : '';
+    return '<svg width="180" height="22" viewBox="0 0 180 22" style="display:block;"><polyline points="'+s.p+'" fill="none" stroke="'+s.c+'" stroke-width="1.6"/>'+avg+'</svg>';
+  }
+
+  function renderTable(period){
+    var rows = rowsFor(period);
+    var tProd=0, tSold=0, tStock=0, tRev=0;
+    var html = rows.map(function(r){
+      tProd+=r.prod; tSold+=r.sold; tStock+=r.stock; tRev+=r.revenue;
+      var bg = r.hl ? ' background:#fffaf2;' : '';
+      var soldStyle = 'padding:13px 8px; text-align:right; font-weight:600;' + (r.soldColor ? ' color:'+r.soldColor+';' : '');
+      var stockStyle = 'padding:13px 8px; text-align:right;' + (r.stockColor ? ' color:'+r.stockColor+'; font-weight:600;' : '');
+      var s = STATUS[r.st];
+      return ''+
+        '<tr style="border-top:1px solid rgba(0,0,0,0.04);'+bg+'">'+
+          '<td style="padding:13px 22px; font-weight:600; white-space:nowrap;">'+r.name+'</td>'+
+          '<td style="padding:13px 8px; color:#6e6e73; white-space:nowrap;">'+r.cat+'</td>'+
+          '<td style="padding:13px 8px; text-align:right;">'+won(r.price)+'</td>'+
+          '<td style="padding:13px 8px; text-align:right;">'+won(r.prod)+'</td>'+
+          '<td style="'+soldStyle+'">'+won(r.sold)+'</td>'+
+          '<td style="'+stockStyle+'">'+won(r.stock)+'</td>'+
+          '<td style="padding:13px 8px;">'+sparkSvg(r.spark)+'</td>'+
+          '<td style="padding:13px 8px; text-align:right; font-weight:600; white-space:nowrap;">'+won(r.revenue)+'원</td>'+
+          '<td style="padding:13px 22px; text-align:right;"><span style="background:'+s.bg+'; color:'+s.color+'; padding:3px 9px; border-radius:8px; font-size:11px; font-weight:600;">'+r.stTxt+'</span></td>'+
+        '</tr>';
+    }).join('');
+    $('skuBody').innerHTML = html;
+    $('skuFoot').innerHTML =
+      '<tr style="border-top:1px solid rgba(0,0,0,0.08); background:#fafafa;">'+
+        '<td colspan="3" style="padding:13px 22px; font-size:12px; color:#6e6e73; font-weight:500;">합계</td>'+
+        '<td style="padding:13px 8px; text-align:right; font-weight:600;">'+won(tProd)+'</td>'+
+        '<td style="padding:13px 8px; text-align:right; font-weight:600;">'+won(tSold)+'</td>'+
+        '<td style="padding:13px 8px; text-align:right; font-weight:600; color:#ff9500;">'+won(tStock)+'</td>'+
+        '<td></td>'+
+        '<td style="padding:13px 8px; text-align:right; font-weight:700; font-size:14px; white-space:nowrap;">'+won(tRev)+'원</td>'+
+        '<td></td>'+
+      '</tr>';
+
+    // KPI
+    var k = KPI[period];
+    var salesVal = k.sales || won(tRev);
+    $('kpiSalesLabel').textContent = k.label;
+    $('kpiSalesValue').textContent = salesVal;
+    var d = k.delta, up = d.dir === 'up';
+    $('kpiSalesDelta').innerHTML = '<span style="color:'+(up?'#0a7a3c':'#ff3b30')+'; font-weight:600;">'+(up?'▲':'▼')+' '+d.pct+'</span> <span style="color:#86868b;">'+d.txt+'</span>';
+    $('kpiVisitors').textContent = k.visitors;
+    $('kpiVisitorsSub').textContent = k.visitorsSub;
+    $('kpiWaste').textContent = k.waste;
+    $('kpiWasteSub').textContent = k.wasteSub;
+    $('kpiSlots').textContent = k.slots;
+    $('kpiSlotsSub').textContent = k.slotsSub;
+  }
+
+  document.querySelectorAll('#periodSeg .seg-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#periodSeg .seg-btn').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      renderTable(b.getAttribute('data-period'));
+    });
+  });
+  $('filterBtn').addEventListener('click', function(){ toast('필터 패널은 데모에서 생략되었습니다'); });
+  renderTable('today');
+
+  /* ---------------- 인스타 캡션 생성 ---------------- */
+  function breadName(v){ return v.split('(')[0].trim().replace(/\s*\d+개.*/,'').trim() || v.trim(); }
+  function discPhrase(v){
+    if(v.indexOf('없음') >= 0) return '';
+    if(v.indexOf('1+1') >= 0) return '1+1 행사';
+    var m = v.match(/\d+%/);
+    return m ? m[0] + ' 할인' : '';
+  }
+  function hashtags(v, bread){
+    switch(v){
+      case '망원동 동네': return '#망원동베이커리 #오븐 #'+bread+' #단골이벤트';
+      case '빵지순례':   return '#빵지순례 #망원동빵집 #'+bread;
+      case '베이커리 일반': return '#베이커리 #갓구운빵 #'+bread;
+      case '할인 강조':   return '#오늘만할인 #'+bread+'특가 #망원동';
+      default: return '';
+    }
+  }
+  function tidy(s){ return s.replace(/ {2,}/g,' ').replace(/ ([.,!?])/g,'$1'); }
+
+  function captionBody(tone, bread, disc, time){
+    var d = disc ? disc : '특별가';
+    switch(tone){
+      case '친근하게':
+        return tidy(bread+' 오늘 진짜 잘 나왔어요 😋\n\n'+time+' '+d+', 망원동 오시는 길에 가볍게 들러요!');
+      case '유머있게':
+        return tidy(bread+', 오븐에서 나오자마자 줄 섰어요 🥖\n\n'+time+' '+d+'! 늦으면… 내일 또 오셔야 해요 😉');
+      case '감성적으로':
+        return tidy('해질 무렵 망원동, 갓 구운 '+bread+' 냄새로 가득합니다.\n\n'+time+' '+d+'. 오늘 하루의 끝을 따뜻하게 마무리하세요.');
+      case '간결하게':
+        return tidy(bread+' '+d+'. '+time+' 한정.\n\n망원동 오븐에서 만나요.');
+      default: // 정중하게
+        return tidy('오늘 새벽 갓 구운 '+iga(bread)+' 아직 따끈합니다.\n\n단골 여러분께 '+time+', '+bread+' '+euro(d)+' 모시겠습니다. 마감 전에 들러주시면 내일 아침 식탁이 든든해집니다.');
+    }
+  }
+  function selText(id){ var s = $(id); return s.options[s.selectedIndex].text; }
+
+  function genCaption(){
+    var bread = breadName(selText('ig-bread'));
+    var disc  = discPhrase(selText('ig-discount'));
+    var time  = selText('ig-time');
+    var toneRaw = selText('ig-tone');
+    var tone = toneRaw.replace(/\s*\(.*\)/,'');
+    var tags = hashtags(selText('ig-hashtag'), bread);
+    var body = captionBody(tone, bread, disc, time);
+    $('igCaption').value = tags ? body + '\n\n' + tags : body;
+    updateCount();
+  }
+  function updateCount(){ $('igCount').textContent = Array.from($('igCaption').value).length; }
+
+  ['ig-type','ig-bread','ig-discount','ig-time','ig-tone','ig-length','ig-hashtag'].forEach(function(id){
+    $(id).addEventListener('change', genCaption);
+  });
+  $('igCaption').addEventListener('input', updateCount);
+
+  var TONES = ['친근하게','정중하게 (추천)','유머있게','감성적으로','간결하게'];
+  $('igRewrite').addEventListener('click', function(){
+    var sel = $('ig-tone'); sel.selectedIndex = (sel.selectedIndex + 1) % TONES.length;
+    genCaption();
+  });
+
+  // ====== 미리 준비된 이미지 시안 (실제 API 대신 5장 순환 · 데모 연출) ======
+  // 실제 이미지로 교체: assets/instagram/ 폴더에 같은 이름으로 덮어쓰거나, 아래 경로를 .jpg 등으로 바꾸세요.
+  var IG_IMAGES = [
+    'assets/instagram/ig-1.svg', 'assets/instagram/ig-2.svg', 'assets/instagram/ig-3.svg',
+    'assets/instagram/ig-4.svg', 'assets/instagram/ig-5.svg'
+  ];
+  var igIdx = 0;
+  function showIgImage(i){
+    igIdx = ((i % IG_IMAGES.length) + IG_IMAGES.length) % IG_IMAGES.length;
+    var img = $('igImg'), badge = $('igShot');
+    img.onload = function(){ img.style.display = 'block'; badge.style.display = 'block'; };
+    img.onerror = function(){ img.style.display = 'none'; badge.style.display = 'none'; }; // 파일 없으면 자리표시로 폴백
+    img.src = IG_IMAGES[igIdx];
+    badge.textContent = '시안 ' + (igIdx + 1) + ' / ' + IG_IMAGES.length;
+  }
+  $('igRegenImg').addEventListener('click', function(){
+    showIgImage(igIdx + 1);
+    toast('새 이미지 시안 ' + (igIdx + 1) + '번 (데모)');
+  });
+  showIgImage(0); // 미리 준비된 첫 시안을 바로 노출
+  $('igPost').addEventListener('click', function(){
+    var when = selText('ig-postat');
+    toast('검토 후 게시 모드 · "'+when+'" 게시 예약됨 (데모)');
+  });
+  genCaption();
+
+  /* ---------------- A4 팝카드 ---------------- */
+  var THEMES = {
+    '따뜻한 베이지':     { accent:'#c8742f', badgeBg:'#1d1d1f', paper:'#fffdf7' },
+    '차분한 모노':       { accent:'#1d1d1f', badgeBg:'#1d1d1f', paper:'#ffffff' },
+    '비비드 레드':       { accent:'#ff3b30', badgeBg:'#ff3b30', paper:'#ffffff' },
+    '그린 내추럴':       { accent:'#2f9e44', badgeBg:'#2f9e44', paper:'#fbfffc' },
+    '흑백 프린트 친화':  { accent:'#1d1d1f', badgeBg:'#1d1d1f', paper:'#ffffff' }
+  };
+  var THEME_KEYS = Object.keys(THEMES);
+
+  function curTheme(){ return THEMES[selText('a4-theme')] || THEMES['따뜻한 베이지']; }
+
+  function renderA4(){
+    var th = curTheme();
+    // 헤드라인: 할인 토큰(%, 1+1) accent 색
+    var head = esc($('a4Headline').value).replace(/(\d+\s*%|1\s*\+\s*1)/g, '<span style="color:'+th.accent+'">$1<\/span>');
+    $('a4HeadOut').innerHTML = head;
+    // 서브카피
+    $('a4SubOut').textContent = $('a4Sub').value;
+    // 배지(강조 문구)
+    var emph = selText('a4-emph');
+    var badge = $('a4Badge');
+    if(emph === '없이'){ badge.style.display = 'none'; }
+    else { badge.style.display = 'inline-flex'; badge.textContent = emph; badge.style.background = th.badgeBg; }
+    // 종이 색
+    $('a4Paper').style.background = th.paper;
+    // 용지 방향
+    var orient = selText('a4-orient'), area = $('a4PrintArea'), paper = $('a4Paper');
+    if(orient.indexOf('가로') >= 0){ paper.style.aspectRatio = '1.414 / 1'; area.style.maxWidth = '520px'; $('a4PreviewLabel').textContent = '미리보기 · A4 가로'; }
+    else if(orient.indexOf('A5') >= 0){ paper.style.aspectRatio = '1 / 1.414'; area.style.maxWidth = '300px'; $('a4PreviewLabel').textContent = '미리보기 · A5 절반'; }
+    else { paper.style.aspectRatio = '1 / 1.414'; area.style.maxWidth = '380px'; $('a4PreviewLabel').textContent = '미리보기 · A4 세로'; }
+  }
+
+  // 빵/할인 변경 시 헤드라인·서브카피 자동 갱신
+  function syncA4Copy(){
+    var bread = breadName(selText('a4-bread'));
+    var dv = selText('a4-discount');
+    var disc = dv.indexOf('없음')>=0 ? '' : (dv.indexOf('1+1')>=0 ? '1+1' : (dv.match(/\d+%/)||[''])[0]);
+    var emph = selText('a4-emph'); var lead = (emph==='없이') ? '' : emph.replace('!','')+' ';
+    $('a4Headline').value = (lead + bread + (disc ? ' ' + disc + ' 할인' : '')).trim();
+    var time = selText('a4-time');
+    $('a4Sub').value = '오늘 새벽 갓 구운 ' + bread + '\n' + time + ' 한정 · 마감 전에 모셔가세요';
+    renderA4();
+  }
+  ['a4-bread','a4-discount','a4-time','a4-emph'].forEach(function(id){ $(id).addEventListener('change', syncA4Copy); });
+  ['a4-theme','a4-orient'].forEach(function(id){ $(id).addEventListener('change', renderA4); });
+  $('a4Headline').addEventListener('input', renderA4);
+  $('a4Sub').addEventListener('input', renderA4);
+
+  $('a4Rewrite').addEventListener('click', function(){ syncA4Copy(); toast('카피를 새로 작성했습니다 (데모)'); });
+  // ====== A4 팝카드 시안 5장 순환 (데모 연출) ======
+  // 실제 이미지로 교체: assets/a4/ 폴더에 같은 이름으로 덮어쓰거나, 아래 경로를 바꾸세요.
+  var A4_IMAGES = [
+    'assets/a4/a4-1.svg', 'assets/a4/a4-2.svg', 'assets/a4/a4-3.svg',
+    'assets/a4/a4-4.svg', 'assets/a4/a4-5.svg'
+  ];
+  var a4Idx = 0;
+  function showA4Image(i){
+    a4Idx = ((i % A4_IMAGES.length) + A4_IMAGES.length) % A4_IMAGES.length;
+    var img = $('a4Img');
+    img.onload = function(){ img.style.display = 'block'; };
+    img.onerror = function(){ img.style.display = 'none'; };
+    img.src = A4_IMAGES[a4Idx];
+  }
+  $('a4Regen').addEventListener('click', function(){
+    showA4Image(a4Idx + 1);                                                      // 사진 시안 교체
+    var sel = $('a4-theme'); sel.selectedIndex = (sel.selectedIndex + 1) % THEME_KEYS.length; // 테마도 함께 전환
+    renderA4();
+    toast('새 디자인 시안 ' + (a4Idx + 1) + '번 · ' + selText('a4-theme'));
+  });
+  showA4Image(0); // 미리 준비된 첫 시안을 바로 노출
+  $('a4Pdf').addEventListener('click', function(){
+    document.body.classList.add('printing-a4');
+    toast('인쇄 대화상자에서 "PDF로 저장"을 선택하세요');
+    setTimeout(function(){ window.print(); }, 120);
+  });
+  window.addEventListener('afterprint', function(){ document.body.classList.remove('printing-a4'); });
+
+  // 오늘 날짜
+  var now = new Date();
+  $('a4Date').textContent = now.getFullYear() + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + String(now.getDate()).padStart(2,'0');
+  renderA4();
+
+  /* ---------------- 검색 (⌘K / Ctrl+K) ---------------- */
+  function flashSearch(){
+    var b = $('searchBar');
+    b.style.boxShadow = '0 0 0 3px rgba(0,113,227,0.25)'; b.style.borderColor = '#0071e3';
+    setTimeout(function(){ b.style.boxShadow = ''; b.style.borderColor = 'rgba(0,0,0,0.06)'; }, 700);
+    toast('검색은 데모에서 생략되었습니다');
+  }
+  $('searchBar').addEventListener('click', flashSearch);
+  document.addEventListener('keydown', function(e){
+    if((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')){ e.preventDefault(); flashSearch(); }
+  });
+})();
+</script>
+</body>
+</html>

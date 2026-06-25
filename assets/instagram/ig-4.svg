@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" font-family="-apple-system,'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ece5d7"/><stop offset="1" stop-color="#c7b288"/></linearGradient>
+    <radialGradient id="vig" cx="0.5" cy="0.4" r="0.75"><stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#5a3a18" stop-opacity="0.12"/></radialGradient>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <rect width="1080" height="1350" fill="url(#vig)"/>
+  <text x="540" y="455" text-anchor="middle" font-size="170" font-weight="800" fill="#8a5a28" fill-opacity="0.14">시안 4</text>
+  <g transform="translate(540 705) rotate(-18)">
+    <ellipse cx="0" cy="0" rx="300" ry="96" fill="#e8b676" stroke="#b9803f" stroke-width="6"/>
+    <g stroke="#9c6328" stroke-width="9" stroke-linecap="round" opacity="0.8">
+      <line x1="-150" y1="-40" x2="-111" y2="-2"/>
+      <line x1="-39" y1="-46" x2="0" y2="-8"/>
+      <line x1="69" y1="-44" x2="111" y2="-6"/>
+    </g>
+  </g>
+  <text x="540" y="1145" text-anchor="middle" font-size="54" font-weight="700" fill="#7a4f22">AI 생성 시안 #4</text>
+  <text x="540" y="1210" text-anchor="middle" font-size="36" fill="#7a4f22" fill-opacity="0.7">바게트 · 오늘만 20% · @oven_mangwon</text>
+</svg>
